@@ -1,0 +1,16 @@
+{
+    "name": "com.teetwostudio.services.google.sheetimportorEditor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:59a945521b317b540be409a9584d094e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
