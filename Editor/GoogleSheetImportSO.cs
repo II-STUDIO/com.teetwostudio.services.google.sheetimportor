@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -55,3 +56,4 @@ namespace Services.Google.Sheetimportor
         }
     }
 }
+#endif

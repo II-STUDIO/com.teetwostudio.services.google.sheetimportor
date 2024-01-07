@@ -1,4 +1,5 @@
-﻿using Services.Utility;
+﻿#if UNITY_EDITOR
+using Services.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -65,6 +66,38 @@ namespace Services.Google.Sheetimportor
         {
             EditorUtility.SetDirty(so);
             AssetDatabase.SaveAssets();
+        }
+
+        private string DetectTextField(string label, string value, string undoAction)
+        {
+            var targetValue = EditorGUILayout.TextField(label, value);
+
+            if (targetValue != value)
+            {
+                Undo.RecordObject(so, undoAction);
+
+                EditorUtility.SetDirty(so);
+
+                return targetValue;
+            }
+
+            return value;
+        }
+
+        private bool DetextToggleField(string label, bool value, string undoAction, params GUILayoutOption[] options)
+        {
+            var targetValue = EditorGUILayout.Toggle(label, value, options);
+
+            if (targetValue != value)
+            {
+                Undo.RecordObject(so, undoAction);
+
+                EditorUtility.SetDirty(so);
+
+                return targetValue;
+            }
+
+            return value;
         }
 
         void OnGUI()
@@ -139,37 +172,6 @@ namespace Services.Google.Sheetimportor
             Repaint();
         }
 
-        private string DetectTextField(string label, string value, string undoAction)
-        {
-            var targetValue = EditorGUILayout.TextField(label, value);
-
-            if(targetValue != value)
-            {
-                Undo.RecordObject(so, undoAction);
-
-                EditorUtility.SetDirty(so);
-
-                return targetValue;
-            }
-
-            return value;
-        }
-
-        private bool DetextToggleField(string label, bool value, string undoAction, params GUILayoutOption[] options)
-        {
-            var targetValue = EditorGUILayout.Toggle(label, value, options);
-
-            if (targetValue != value)
-            {
-                Undo.RecordObject(so, undoAction);
-
-                EditorUtility.SetDirty(so);
-
-                return targetValue;
-            }
-
-            return value;
-        }
 
         public void SetupAnimBool()
         {
@@ -462,3 +464,4 @@ namespace Services.Google.Sheetimportor
         }
     }
 }
+#endif

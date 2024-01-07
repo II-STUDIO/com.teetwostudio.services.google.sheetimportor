@@ -1,24 +1,27 @@
-[System.Serializable]
-public struct GoogleSheetDownloadSetting
+namespace Services.Google.Sheetimportor
 {
-    public string defaultHead;
-    public string defaultExportFormat;
-    public string defaultCSVFolder;
-    public string defaultJsonFolder;
-    public string defaultName;
-
-    public static GoogleSheetDownloadSetting Default
+    [System.Serializable]
+    public struct GoogleSheetDownloadSetting
     {
-        get
+        public string defaultHead;
+        public string defaultExportFormat;
+        public string defaultCSVFolder;
+        public string defaultJsonFolder;
+        public string defaultName;
+
+        public static GoogleSheetDownloadSetting Default
         {
-            return new GoogleSheetDownloadSetting
+            get
             {
-                defaultHead = "https://docs.google.com/spreadsheets/d/",
-                defaultExportFormat = "/gviz/tq?tqx=out:csv&sheet=",
-                defaultCSVFolder = "Resources/GoogleSheets/CSVs/",
-                defaultJsonFolder = "Resources/GoogleSheets/Jsons/",
-                defaultName = "Untitled",
-            };
+                return new GoogleSheetDownloadSetting
+                {
+                    defaultHead = "https://docs.google.com/spreadsheets/d/",
+                    defaultExportFormat = "/gviz/tq?tqx=out:csv&sheet=",
+                    defaultCSVFolder = "Resources/GoogleSheets/CSVs/",
+                    defaultJsonFolder = "Resources/GoogleSheets/Jsons/",
+                    defaultName = "Untitled",
+                };
+            }
         }
     }
 }
