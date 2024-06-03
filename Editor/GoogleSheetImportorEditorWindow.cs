@@ -12,7 +12,7 @@ namespace Services.Google.Sheetimportor
     public class GoogleSheetImportorEditorWindow : EditorWindow
     {
         private const string SODirectory = "Resources/GoogleSheets/";
-        private const string SOPath = SODirectory + "GoogleSheetImportorSO.asset";
+        private const string SOName = "GoogleSheetImportorSO.asset";
 
         private GoogleSheetImportSO so;
         private AnimBoolGroupController<SheetImportSlot> slotAnimBools = new();
@@ -34,30 +34,7 @@ namespace Services.Google.Sheetimportor
         {
             var window = GetWindow<GoogleSheetImportorEditorWindow>("Google Sheet Importor");
 
-            var guids = AssetDatabase.FindAssets("t:GoogleSheetImportSO");
-
-            GoogleSheetImportSO exitedSO = null;
-
-            if (guids.Length > 0)
-                exitedSO = AssetDatabase.LoadAssetAtPath(AssetDatabase.GUIDToAssetPath(guids[0]), typeof(GoogleSheetImportSO)) as GoogleSheetImportSO;
-
-            if (exitedSO)
-                window.so = exitedSO;
-            else
-            {
-                window.so = CreateInstance<GoogleSheetImportSO>();
-
-                string targetDirectory = $"{Application.dataPath}/{SODirectory}/";
-                string resultPath = $"Assets/{SOPath}";
-
-                if (!Directory.Exists(targetDirectory))
-                    Directory.CreateDirectory(targetDirectory);
-
-                AssetDatabase.Refresh();
-
-                AssetDatabase.CreateAsset(window.so, resultPath);
-                AssetDatabase.SaveAssets();
-            }
+            AssetFounderUtility.FoundExistOrCreateOneSO(SODirectory, SOName, out window.so);
 
             window.SetupAnimBool();
         }
@@ -68,50 +45,46 @@ namespace Services.Google.Sheetimportor
             AssetDatabase.SaveAssets();
         }
 
-        private string DetectTextField(string label, string value, string undoAction)
-        {
-            var targetValue = EditorGUILayout.TextField(label, value);
+        //private string DetectTextField(string label, string value, string undoAction)
+        //{
+        //    var targetValue = EditorGUILayout.TextField(label, value);
 
-            if (targetValue != value)
-            {
-                Undo.RecordObject(so, undoAction);
+        //    if (targetValue != value)
+        //    {
+        //        Undo.RecordObject(so, undoAction);
 
-                EditorUtility.SetDirty(so);
+        //        EditorUtility.SetDirty(so);
 
-                return targetValue;
-            }
+        //        return targetValue;
+        //    }
 
-            return value;
-        }
+        //    return value;
+        //}
 
-        private bool DetextToggleField(string label, bool value, string undoAction, params GUILayoutOption[] options)
-        {
-            var targetValue = EditorGUILayout.Toggle(label, value, options);
+        //private bool DetextToggleField(string label, bool value, string undoAction, params GUILayoutOption[] options)
+        //{
+        //    var targetValue = EditorGUILayout.Toggle(label, value, options);
 
-            if (targetValue != value)
-            {
-                Undo.RecordObject(so, undoAction);
+        //    if (targetValue != value)
+        //    {
+        //        Undo.RecordObject(so, undoAction);
 
-                EditorUtility.SetDirty(so);
+        //        EditorUtility.SetDirty(so);
 
-                return targetValue;
-            }
+        //        return targetValue;
+        //    }
 
-            return value;
-        }
+        //    return value;
+        //}
 
         void OnGUI()
         {
-            if(middleLabelStyle == null)
-            {
-                middleLabelStyle = new GUIStyle(GUI.skin.label);
-                middleLabelStyle.alignment = TextAnchor.MiddleCenter;
-            }    
+            middleLabelStyle = middleLabelStyle.ToMiddleCenterTextStyle();
 
             using (var verticalScope = new GUILayout.VerticalScope("GroupBox"))
             {
                 var targetSO = EditorGUILayout.ObjectField("SO Database", so, typeof(GoogleSheetImportSO), true) as GoogleSheetImportSO;
-                if(targetSO != so)
+                if (targetSO != so)
                 {
                     Undo.RecordObject(this, "GoogleSheetEditorWindow_Change_SO");
 
@@ -120,11 +93,11 @@ namespace Services.Google.Sheetimportor
 
                 GUILayout.Space(5f);
 
-                so.defaultSetting.defaultHead = DetectTextField("Default Head", so.defaultSetting.defaultHead, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_Head");
-                so.defaultSetting.defaultExportFormat = DetectTextField("Default Export Format", so.defaultSetting.defaultExportFormat, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_ExportFormat");
-                so.defaultSetting.defaultCSVFolder = DetectTextField("Default CSV Folder", so.defaultSetting.defaultCSVFolder, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_CSVFolder");
-                so.defaultSetting.defaultJsonFolder = DetectTextField("Default Json Folder", so.defaultSetting.defaultJsonFolder, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_JsonFolder");
-                so.defaultSetting.defaultName = DetectTextField("Default Name", so.defaultSetting.defaultName, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_Name");
+                so.defaultSetting.defaultHead = EditorView.DetectTextField(so, "Default Head", so.defaultSetting.defaultHead, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_Head");
+                so.defaultSetting.defaultExportFormat = EditorView.DetectTextField(so, "Default Export Format", so.defaultSetting.defaultExportFormat, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_ExportFormat");
+                so.defaultSetting.defaultCSVFolder = EditorView.DetectTextField(so, "Default CSV Folder", so.defaultSetting.defaultCSVFolder, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_CSVFolder");
+                so.defaultSetting.defaultJsonFolder = EditorView.DetectTextField(so, "Default Json Folder", so.defaultSetting.defaultJsonFolder, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_JsonFolder");
+                so.defaultSetting.defaultName = EditorView.DetectTextField(so, "Default Name", so.defaultSetting.defaultName, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_Name");
             }
 
             using (var scrollViewScope = new GUILayout.ScrollViewScope(slotListScrollviewPos, "GroupBox"))
@@ -288,19 +261,39 @@ namespace Services.Google.Sheetimportor
                         {
                             EditorGUI.indentLevel++;
 
-                            slot.fileName = DetectTextField("File Name", slot.fileName, "Change_GoogleSheet_Import_Slot_FileName");
-                            slot.docId = DetectTextField("Doccument ID", slot.docId, "Change_GoogleSheet_Import_Slot_DocID");
-                            slot.sheetName = DetectTextField("Sheet Name", slot.sheetName, "Change_GoogleSheet_Import_Slot_SheetName");
+                            slot.fileName = EditorView.DetectTextField(so, "File Name", slot.fileName, "Change_GoogleSheet_Import_Slot_FileName");
+                            slot.docId = EditorView.DetectTextField(so,"Doccument ID", slot.docId, "Change_GoogleSheet_Import_Slot_DocID");
+                            slot.sheetName = EditorView.DetectTextField(so,"Sheet Name", slot.sheetName, "Change_GoogleSheet_Import_Slot_SheetName");
 
                             using (var jsonScope = new GUILayout.HorizontalScope())
                             {
-                                slot.autoGenerateJsonValue = DetextToggleField("Auto Generate Json", slot.autoGenerateJsonValue, "Change_GoogleSheet_Import_Slot_AutoGenerateJson", GUILayout.Width(180f));
+                                slot.autoGenerateJsonValue = EditorView.DetextToggleField(so,"Auto Generate Json", slot.autoGenerateJsonValue, "Change_GoogleSheet_Import_Slot_AutoGenerateJson", GUILayout.Width(180f));
 
                                 if (slot.IsCSVExisted(so.defaultSetting))
                                 {
                                     if (GUILayout.Button("Regenerate Jon"))
                                     {
                                         slot.ReganerateOrImportJson(so.defaultSetting);
+                                    }
+
+                                    if (GUILayout.Button("CSV", GUILayout.Width(100)))
+                                    {
+                                        TextAsset csv = slot.GetCSV(so.defaultSetting);
+
+                                        if (csv)
+                                            EditorGUIUtility.PingObject(csv);
+                                        else
+                                            Debug.LogError("CSV file not exist");
+                                    }
+
+                                    if (GUILayout.Button("Json", GUILayout.Width(100)))
+                                    {
+                                        TextAsset json = slot.GEtJson(so.defaultSetting);
+
+                                        if (json)
+                                            EditorGUIUtility.PingObject(json);
+                                        else
+                                            Debug.LogError("Json file not exist");
                                     }
                                 }
                             }
@@ -336,10 +329,10 @@ namespace Services.Google.Sheetimportor
                 {
                     EditorGUI.indentLevel++;
 
-                    slot.override_Head = DetectTextField("Head", slot.override_Head, "Change_GoogleSheet_Import_Slot_OverrideHead");
-                    slot.override_ExportFormat = DetectTextField("Export Format", slot.override_ExportFormat, "Change_GoogleSheet_Import_Slot_OverrideExportFormat");
-                    slot.override_CSVFolderPath = DetectTextField("CSV Folder Path", slot.override_CSVFolderPath, "Change_GoogleSheet_Import_Slot_OverrideCSVFolderPath");
-                    slot.override_JsonFolderPath = DetectTextField("Json Folder Path", slot.override_JsonFolderPath, "Change_GoogleSheet_Import_Slot_OverrideJsonFolderPath");
+                    slot.override_Head = EditorView.DetectTextField(so,"Head", slot.override_Head, "Change_GoogleSheet_Import_Slot_OverrideHead");
+                    slot.override_ExportFormat = EditorView.DetectTextField(so, "Export Format", slot.override_ExportFormat, "Change_GoogleSheet_Import_Slot_OverrideExportFormat");
+                    slot.override_CSVFolderPath = EditorView.DetectTextField(so, "CSV Folder Path", slot.override_CSVFolderPath, "Change_GoogleSheet_Import_Slot_OverrideCSVFolderPath");
+                    slot.override_JsonFolderPath = EditorView.DetectTextField(so, "Json Folder Path", slot.override_JsonFolderPath, "Change_GoogleSheet_Import_Slot_OverrideJsonFolderPath");
 
                     EditorGUI.indentLevel--;
                 }

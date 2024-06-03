@@ -158,6 +158,38 @@ namespace Services.Google.Sheetimportor
             return true;
         }
 
+        public TextAsset GetCSV(GoogleSheetDownloadSetting setting)
+        {
+            var target_CSVFolderPath = override_CSVFolderPath.IsNullOrEmpty() ? setting.defaultCSVFolder : override_CSVFolderPath;
+
+            string diractoryPath = $"{Application.dataPath}/{target_CSVFolderPath}";
+            string filePath = $"{diractoryPath}{fileName}.txt";
+
+            if (!Directory.Exists(diractoryPath))
+                return null;
+
+            if (!File.Exists(filePath))
+                return null;
+
+            return (TextAsset)AssetDatabase.LoadAssetAtPath($"Assets/{target_CSVFolderPath}{fileName}.txt", typeof(TextAsset));
+        }
+
+        public TextAsset GEtJson(GoogleSheetDownloadSetting setting)
+        {
+            var target_JsonFolderPath = override_JsonFolderPath.IsNullOrEmpty() ? setting.defaultJsonFolder : override_JsonFolderPath;
+
+            string diractoryPath = $"{Application.dataPath}/{target_JsonFolderPath}";
+            string filePath = $"{diractoryPath}{fileName}.json";
+
+            if (!Directory.Exists(diractoryPath))
+                return null;
+
+            if (!File.Exists(filePath))
+                return null;
+
+            return (TextAsset)AssetDatabase.LoadAssetAtPath($"Assets/{target_JsonFolderPath}{fileName}.json", typeof(TextAsset));
+        }
+
         public void ReganerateOrImportJson(GoogleSheetDownloadSetting setting)
         {
             GenerateJson(setting);
