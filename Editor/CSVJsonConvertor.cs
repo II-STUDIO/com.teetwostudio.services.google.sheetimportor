@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -61,3 +62,4 @@ namespace Services.Google.Convertion
         }
     }
 }
+#endif

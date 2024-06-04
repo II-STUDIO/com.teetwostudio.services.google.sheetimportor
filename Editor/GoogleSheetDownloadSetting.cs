@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 namespace Services.Google.Sheetimportor
 {
     [System.Serializable]
@@ -25,3 +26,4 @@ namespace Services.Google.Sheetimportor
         }
     }
 }
+#endif
