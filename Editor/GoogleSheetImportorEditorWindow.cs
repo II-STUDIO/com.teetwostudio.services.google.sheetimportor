@@ -13,6 +13,7 @@ namespace Services.Google.Sheetimportor
     {
         private const string SODirectory = "Resources/GoogleSheets/";
         private const string SOName = "GoogleSheetImportorSO.asset";
+        private const string SONameNew = "GoogleSheetImportorSONew.asset";
 
         private GoogleSheetImportSO so;
         private AnimBoolGroupController<SheetImportSlot> slotAnimBools = new();
@@ -28,19 +29,24 @@ namespace Services.Google.Sheetimportor
         private bool isDownloadAll = false;
 
         private List<SheetImportSlot> endProgessedList = new();
+        private GoogleSheetImportSO[] soArray;
 
         [MenuItem("IIStudio/Google/SheetImportor")]
         public static void Open()
         {
             var window = GetWindow<GoogleSheetImportorEditorWindow>("Google Sheet Importor");
 
-            AssetFounderUtility.FoundExistOrCreateOneSO(SODirectory, SOName, out window.so);
+            AssetFounderUtility.FoundExistOrCreateOneSO(SODirectory, SOName, out window.so);       
 
             window.SetupAnimBool();
+            window.SetupSOArray();
         }
 
         private void OnDisable()
         {
+            if (!so)
+                return;
+
             EditorUtility.SetDirty(so);
             AssetDatabase.SaveAssets();
         }
@@ -83,22 +89,58 @@ namespace Services.Google.Sheetimportor
 
             using (var verticalScope = new GUILayout.VerticalScope("GroupBox"))
             {
-                var targetSO = EditorGUILayout.ObjectField("SO Database", so, typeof(GoogleSheetImportSO), true) as GoogleSheetImportSO;
-                if (targetSO != so)
+                using (var horizotnal = new GUILayout.HorizontalScope())
                 {
-                    Undo.RecordObject(this, "GoogleSheetEditorWindow_Change_SO");
+                    var targetSO = EditorGUILayout.ObjectField("SO Database", so, typeof(GoogleSheetImportSO), true) as GoogleSheetImportSO;
+                    if (targetSO != so)
+                    {
+                        Undo.RecordObject(this, "GoogleSheetEditorWindow_Change_SO");
 
-                    so = targetSO;
+                        so = targetSO;
+                    }
+
+                    if (GUILayout.Button("Select", GUILayout.Width(60f)))
+                    {
+                        GenericMenu menu = new GenericMenu();
+
+                        foreach(var soAsset in soArray)
+                        {
+                            menu.AddItem(new GUIContent(soAsset.name), so == soAsset, OnSelect, soAsset);
+                        }
+
+                        menu.ShowAsContext();
+                    }
+
+                    if (GUILayout.Button("New", GUILayout.Width(60f)))
+                    {
+                        string savePath = $"Assets/{SODirectory}";
+                        string selectPath = EditorUtility.SaveFilePanelInProject("Save Google Sheet Importor", SONameNew, "asset", "asset", savePath);
+
+                        if (!selectPath.IsNullOrEmpty() && selectPath.Length != 0)
+                        {
+                            AssetFounderUtility.FoundExistOrCreateSO(selectPath, out so);
+
+                            SetupAnimBool();
+                            SetupSOArray();
+                        } 
+                    }
                 }
 
-                GUILayout.Space(5f);
+                if (so)
+                {
 
-                so.defaultSetting.defaultHead = EditorView.DetectTextField(so, "Default Head", so.defaultSetting.defaultHead, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_Head");
-                so.defaultSetting.defaultExportFormat = EditorView.DetectTextField(so, "Default Export Format", so.defaultSetting.defaultExportFormat, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_ExportFormat");
-                so.defaultSetting.defaultCSVFolder = EditorView.DetectTextField(so, "Default CSV Folder", so.defaultSetting.defaultCSVFolder, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_CSVFolder");
-                so.defaultSetting.defaultJsonFolder = EditorView.DetectTextField(so, "Default Json Folder", so.defaultSetting.defaultJsonFolder, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_JsonFolder");
-                so.defaultSetting.defaultName = EditorView.DetectTextField(so, "Default Name", so.defaultSetting.defaultName, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_Name");
+                    GUILayout.Space(5f);
+
+                    so.defaultSetting.defaultHead = EditorView.DetectTextField(so, "Default Head", so.defaultSetting.defaultHead, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_Head");
+                    so.defaultSetting.defaultExportFormat = EditorView.DetectTextField(so, "Default Export Format", so.defaultSetting.defaultExportFormat, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_ExportFormat");
+                    so.defaultSetting.defaultCSVFolder = EditorView.DetectTextField(so, "Default CSV Folder", so.defaultSetting.defaultCSVFolder, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_CSVFolder");
+                    so.defaultSetting.defaultJsonFolder = EditorView.DetectTextField(so, "Default Json Folder", so.defaultSetting.defaultJsonFolder, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_JsonFolder");
+                    so.defaultSetting.defaultName = EditorView.DetectTextField(so, "Default Name", so.defaultSetting.defaultName, "GoogleSheetEditorWindow_Change_SO_DefaultSetting_Name");
+                }
             }
+
+            if (!so)
+                return;
 
             using (var scrollViewScope = new GUILayout.ScrollViewScope(slotListScrollviewPos, "GroupBox"))
             {
@@ -146,7 +188,22 @@ namespace Services.Google.Sheetimportor
         }
 
 
-        public void SetupAnimBool()
+        private void OnSelect(object target)
+        {
+            so = (GoogleSheetImportSO)target;
+
+            SetupAnimBool();
+        }
+
+
+        private void SetupSOArray()
+        {
+            string resultPath = $"Assets/{SODirectory}";
+
+            soArray = AssetFounderUtility.FoundAllAssetTypeAtPath<GoogleSheetImportSO>(resultPath);
+        }
+
+        private void SetupAnimBool()
         {
             for (int i = 0; i < so.importSlots.Count; i++)
             {

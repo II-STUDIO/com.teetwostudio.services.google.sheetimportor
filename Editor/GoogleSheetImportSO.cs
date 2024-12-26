@@ -4,6 +4,7 @@ using UnityEngine;
 
 namespace Services.Google.Sheetimportor
 {
+    [CreateAssetMenu(fileName = "SheetImportoSO",menuName = "IIStudio/Google/SheetImportoSO")]
     public class GoogleSheetImportSO : ScriptableObject
     {
         public GoogleSheetDownloadSetting defaultSetting = GoogleSheetDownloadSetting.Default;

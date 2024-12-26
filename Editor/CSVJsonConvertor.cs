@@ -37,7 +37,9 @@ namespace Services.Google.Convertion
             {
                 var objResult = new Dictionary<string, object>();
                 for (int j = 0; j < properties.Count; j++)
+                {
                     objResult.Add(properties[j], csv[i][j]);
+                }
 
                 listObjResult.Add(objResult);
             }
