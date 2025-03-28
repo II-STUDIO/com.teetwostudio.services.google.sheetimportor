@@ -1,6 +1,6 @@
 {
     "name": "com.teetwostudio.services.google.sheetimportor",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "unityRelease": "2f1",
     "displayName": "TEE II Studio Services google sheet importor",
     "description": "This will help your for import google sheet.",

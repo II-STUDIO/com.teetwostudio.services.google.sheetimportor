@@ -11,6 +11,14 @@ namespace Services.Google.Sheetimportor
 
         public List<SheetImportSlot> importSlots = new();
 
+        public void ClearTask()
+        {
+            foreach(var slot in importSlots)
+            {
+                slot.ClearTask();
+            }
+        }
+
         public void UseDefaultDownloadSetting()
         {
             defaultSetting = GoogleSheetDownloadSetting.Default;

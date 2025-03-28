@@ -124,6 +124,14 @@ namespace Services.Google.Sheetimportor
                             SetupSOArray();
                         } 
                     }
+
+                    if (GUILayout.Button("ClearTask", GUILayout.Width(75f)))
+                    {
+                        so.ClearTask();
+
+                        EditorUtility.SetDirty(so);
+                        AssetDatabase.SaveAssetIfDirty(so);
+                    }
                 }
 
                 if (so)
@@ -324,33 +332,52 @@ namespace Services.Google.Sheetimportor
 
                             using (var jsonScope = new GUILayout.HorizontalScope())
                             {
-                                slot.autoGenerateJsonValue = EditorView.DetextToggleField(so,"Auto Generate Json", slot.autoGenerateJsonValue, "Change_GoogleSheet_Import_Slot_AutoGenerateJson", GUILayout.Width(180f));
+                                slot.importAsJsonValue = EditorView.DetextToggleField(so, "Import As Json", slot.importAsJsonValue, "Change_GoogleSheet_Import_Slot_ImportAsJson", GUILayout.Width(180f));
 
-                                if (slot.IsCSVExisted(so.defaultSetting))
+                                if (slot.importAsJsonValue && slot.IsJsonExisted(so.defaultSetting))
                                 {
-                                    if (GUILayout.Button("Regenerate Jon"))
-                                    {
-                                        slot.ReganerateOrImportJson(so.defaultSetting);
-                                    }
-
-                                    if (GUILayout.Button("CSV", GUILayout.Width(100)))
-                                    {
-                                        TextAsset csv = slot.GetCSV(so.defaultSetting);
-
-                                        if (csv)
-                                            EditorGUIUtility.PingObject(csv);
-                                        else
-                                            Debug.LogError("CSV file not exist");
-                                    }
-
                                     if (GUILayout.Button("Json", GUILayout.Width(100)))
                                     {
                                         TextAsset json = slot.GEtJson(so.defaultSetting);
 
                                         if (json)
                                             EditorGUIUtility.PingObject(json);
-                                        else
-                                            Debug.LogError("Json file not exist");
+                                    }
+                                }
+                            }
+
+                            if (!slot.importAsJsonValue) 
+                            {
+                                using (var jsonScope = new GUILayout.HorizontalScope())
+                                {
+                                    slot.autoGenerateJsonValue = EditorView.DetextToggleField(so, "Auto Generate Json", slot.autoGenerateJsonValue, "Change_GoogleSheet_Import_Slot_AutoGenerateJson", GUILayout.Width(180f));
+
+                                    if (slot.IsCSVExisted(so.defaultSetting))
+                                    {
+                                        if (GUILayout.Button("Regenerate Jon"))
+                                        {
+                                            slot.ReganerateOrImportJson(so.defaultSetting);
+                                        }
+
+                                        if (GUILayout.Button("CSV", GUILayout.Width(100)))
+                                        {
+                                            TextAsset csv = slot.GetCSV(so.defaultSetting);
+
+                                            if (csv)
+                                                EditorGUIUtility.PingObject(csv);
+                                            else
+                                                Debug.LogError("CSV file not exist");
+                                        }
+
+                                        if (GUILayout.Button("Json", GUILayout.Width(100)))
+                                        {
+                                            TextAsset json = slot.GEtJson(so.defaultSetting);
+
+                                            if (json)
+                                                EditorGUIUtility.PingObject(json);
+                                            else
+                                                Debug.LogError("Json file not exist");
+                                        }
                                     }
                                 }
                             }
@@ -378,7 +405,7 @@ namespace Services.Google.Sheetimportor
 
             var animBool = slotAnimBoolOverrides.Get(slot, startValue: false);
 
-            animBool.target = EditorGUILayout.Toggle("Override Option", animBool.target);
+            animBool.target = EditorGUILayout.Foldout(animBool.target, "Override Option");
 
             using (var group = new EditorGUILayout.FadeGroupScope(animBool.faded))
             {

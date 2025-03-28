@@ -1,7 +1,9 @@
 #if UNITY_EDITOR
+using Newtonsoft.Json.Linq;
 using Services.Google.Convertion;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using Unity.EditorCoroutines.Editor;
 using UnityEditor;
@@ -22,9 +24,17 @@ namespace Services.Google.Sheetimportor
         }
 
         public string fileName;
+
+        public void ClearTask()
+        {
+            Progess = 0f;
+            CurrentStatus = Status.Normal;
+        }
+
         public string docId;
         public string sheetName;
         public bool autoGenerateJsonValue = true;
+        public bool importAsJsonValue = false;
 
         public string override_Head;
         public string override_ExportFormat;
@@ -49,8 +59,11 @@ namespace Services.Google.Sheetimportor
             var target_Head = override_Head.IsNullOrEmpty() ? setting.defaultHead : override_Head;
             var target_ExportFormat = override_ExportFormat.IsNullOrEmpty() ? setting.defaultExportFormat : override_ExportFormat;
             var target_CSVFolderPath = override_CSVFolderPath.IsNullOrEmpty() ? setting.defaultCSVFolder : override_CSVFolderPath;
+            var target_JsonFolderPath = override_JsonFolderPath.IsNullOrEmpty() ? setting.defaultJsonFolder : override_JsonFolderPath;
 
-            string url = $"{target_Head}{docId}{target_ExportFormat}{sheetName}";
+            string url_CSV = $"{target_Head}{docId}{target_ExportFormat}{sheetName}";
+            string url_Json = $"{target_Head}{docId}{target_ExportFormat}";
+            string url = importAsJsonValue ? url_Json : url_CSV;
 
             Debug.Log(url);
 
@@ -76,23 +89,47 @@ namespace Services.Google.Sheetimportor
 
                 if (webRequest.result == UnityWebRequest.Result.Success)
                 {
+                    string targetPath = importAsJsonValue ? target_JsonFolderPath : target_CSVFolderPath;
+                    string format = importAsJsonValue ? ".json" : ".txt";
+
                     string downloadData = webRequest.downloadHandler.text;
-
-                    CreateFile(downloadData, target_CSVFolderPath, fileName, ".txt");
-
-                    yield return new WaitForEndOfFrame();
-
-                    CurrentStatus = Status.Successfully;
-
-                    if (autoImport)
+                    bool isBreak = false;
+                    if (importAsJsonValue)
                     {
                         try
                         {
-                            Import(setting);
+                            downloadData = GoogleJsonToJson(downloadData);
+
                         }
                         catch(Exception e)
                         {
+                            Progess = 0f;
+                            CurrentStatus = Status.Normal;
+
+                            isBreak = true;
                             Debug.LogException(e);
+                            StopCoroutine();
+                        }
+                    }
+
+                    if (!isBreak)
+                    {
+                        CreateFile(downloadData, targetPath, fileName, format);
+
+                        yield return new WaitForEndOfFrame();
+
+                        CurrentStatus = Status.Successfully;
+
+                        if (autoImport)
+                        {
+                            try
+                            {
+                                Import(setting);
+                            }
+                            catch (Exception e)
+                            {
+                                Debug.LogException(e);
+                            }
                         }
                     }
                 }
@@ -118,6 +155,79 @@ namespace Services.Google.Sheetimportor
             onEndProgess?.Invoke(this);
         }
 
+        private string GoogleJsonToJson(string json)
+        {
+            json = json.Substring(47, json.Length - 49); // Trim extra characters
+            JObject jsonObj = JObject.Parse(json);
+
+            List<Dictionary<string, string>> sheetData = new List<Dictionary<string, string>>();
+
+            // Extract column headers
+            JArray columns = (JArray)jsonObj["table"]["cols"];
+            List<string> columnNames = new List<string>();
+
+            bool isSkipFirstRow = false;
+
+            // Check if label is null and use the first row's value if needed
+            foreach (var col in columns)
+            {
+                string colName = col["label"]?.ToString();
+                if (string.IsNullOrEmpty(colName))
+                {
+                    // If the label is null, use the value from the first row
+                    JArray rows = (JArray)jsonObj["table"]["rows"];
+                    if (rows.Count > 0 && rows[0]["c"] != null && rows[0]["c"][columnNames.Count] != null)
+                    {
+                        var raw = rows[0]["c"][columnNames.Count];
+
+                        if (raw != null && raw.HasValues)
+                        {
+                            colName = raw["v"].ToString();
+                            isSkipFirstRow = true;
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(colName))
+                    columnNames.Add(colName);
+
+            }
+
+            if (columnNames.Count == 0)
+            {
+                Debug.LogWarning("No column names found!");
+            }
+
+            // Extract rows
+            JArray rowsData = (JArray)jsonObj["table"]["rows"];
+            foreach (var row in rowsData)
+            {
+                if (isSkipFirstRow)
+                {
+                    isSkipFirstRow = false;
+                    continue;
+                }
+
+                JArray rowData = (JArray)row["c"];
+                Dictionary<string, string> rowDict = new Dictionary<string, string>();
+
+                for (int i = 0; i < columnNames.Count; i++)
+                {
+                    if (i < rowData.Count && rowData[i] != null && rowData[i]["v"] != null)
+                        rowDict[columnNames[i]] = rowData[i]["v"].ToString();
+                    else
+                        rowDict[columnNames[i]] = ""; // Empty cell
+                }
+
+                sheetData.Add(rowDict);
+            }
+
+            // Convert to JSON and print result
+            string formattedJson = Newtonsoft.Json.JsonConvert.SerializeObject(sheetData, Newtonsoft.Json.Formatting.Indented);
+
+            return formattedJson;
+        }
+
         private void StopCoroutine()
         {
             if (coroutine == null)
@@ -130,16 +240,23 @@ namespace Services.Google.Sheetimportor
 
         public void Import(GoogleSheetDownloadSetting setting)
         {
-            ImportFile(override_CSVFolderPath, setting.defaultCSVFolder, ".txt");
-
-            if (!autoGenerateJsonValue)
+            if (importAsJsonValue)
             {
-                return;
+                ImportFile(override_JsonFolderPath, setting.defaultJsonFolder, ".json");
             }
+            else
+            {
+                ImportFile(override_CSVFolderPath, setting.defaultCSVFolder, ".txt");
 
-            GenerateJson(setting);
+                if (!autoGenerateJsonValue)
+                {
+                    return;
+                }
 
-            ImportFile(override_JsonFolderPath, setting.defaultJsonFolder, ".json");
+                GenerateJson(setting);
+
+                ImportFile(override_JsonFolderPath, setting.defaultJsonFolder, ".json");
+            }
         }
 
         public bool IsCSVExisted(GoogleSheetDownloadSetting setting)
@@ -148,6 +265,22 @@ namespace Services.Google.Sheetimportor
 
             string diractoryPath = $"{Application.dataPath}/{target_CSVFolderPath}";
             string filePath = $"{diractoryPath}{fileName}.txt";
+
+            if (!Directory.Exists(diractoryPath))
+                return false;
+
+            if (!File.Exists(filePath))
+                return false;
+
+            return true;
+        }
+
+        public bool IsJsonExisted(GoogleSheetDownloadSetting setting)
+        {
+            var target_JsonFolderPath = override_JsonFolderPath.IsNullOrEmpty() ? setting.defaultJsonFolder : override_JsonFolderPath;
+
+            string diractoryPath = $"{Application.dataPath}/{target_JsonFolderPath}";
+            string filePath = $"{diractoryPath}{fileName}.json";
 
             if (!Directory.Exists(diractoryPath))
                 return false;
